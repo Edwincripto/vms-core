@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VMS Enterprise Core | Events & Alarms</title>
+    <style>
+        :root {
+            --bg-dark: #0a0c10; --panel-bg: #14171d; --card-bg: #1e222a;
+            --text-main: #f3f4f6; --text-muted: #9ca3af;
+            --accent: #2563eb; --danger: #dc2626; --warning: #f59e0b; --success: #10b981;
+            --border: #2a2f3a; --radius-md: 6px; --radius-sm: 4px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Inter, sans-serif; background-color: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        .top-nav { height: 48px; background-color: var(--panel-bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; gap: 24px; font-size: 14px; }
+        .nav-brand { font-weight: bold; font-size: 16px; letter-spacing: 0.5px; }
+        .nav-link { color: var(--text-muted); cursor: pointer; transition: 0.2s; text-decoration: none; }
+        .nav-link.active { color: var(--text-main); font-weight: 600; }
+        .nav-link:hover { color: var(--text-main); }
+
+        .workspace { flex: 1; padding: 24px; display: flex; flex-direction: column; overflow: hidden; }
+        .panel { flex: 1; background: var(--panel-bg); border: 1px solid var(--border); border-radius: var(--radius-md); display: flex; flex-direction: column; overflow: hidden; }
+        .panel-header { padding: 16px 20px; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+        th { background: var(--card-bg); color: var(--text-muted); padding: 12px 20px; font-weight: 600; border-bottom: 1px solid var(--border); }
+        td { padding: 12px 20px; border-bottom: 1px solid var(--border); color: var(--text-main); }
+        .badge-danger { background: rgba(220, 38, 38, 0.2); color: var(--danger); padding: 4px 8px; border-radius: var(--radius-sm); font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <header class="top-nav">
+        <div class="nav-brand">VMS Enterprise Core</div>
+        <a href="dashboard.html" class="nav-link">Live</a>
+        <a href="playback.html" class="nav-link">Playback</a>
+        <a href="maps.html" class="nav-link">Maps</a>
+        <a href="events.html" class="nav-link active">Events</a>
+        <a href="export.html" class="nav-link" style="color: var(--danger);">Export Master</a>
+        <a href="audit.html" class="nav-link">Audit</a>
+    </header>
+
+    <div class="workspace">
+        <div class="panel">
+            <div class="panel-header">
+                <span>Журнал срабатываний ИИ-аналитики и тревог в реальном времени</span>
+                <button onclick="loadEvents()" style="background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border); padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer;">🔄 Обновить</button>
+            </div>
+            <div style="overflow-y: auto; flex: 1;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID Инцидента</th>
+                            <th>Время события</th>
+                            <th>Камера</th>
+                            <th>Тип тревоги</th>
+                            <th>Статус SLA</th>
+                        </tr>
+                    </thead>
+                    <tbody id="events-tbody">
+                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Загрузка событий...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadEvents() {
+            try {
+                const res = await fetch('/alarms.json?t=' + Date.now());
+                if (!res.ok) return;
+                const alarms = await res.json();
+                
+                const tbody = document.getElementById('events-tbody');
+                if (alarms.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Нет зафиксированных тревог</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                // Сортируем от новых к старым
+                alarms.reverse().forEach(item => {
+                    const dateStr = new Date(item.timestamp * 1000).toLocaleTimeString();
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>#${item.id}</td>
+                        <td>${dateStr}</td>
+                        <td>${item.camera}</td>
+                        <td><span class="badge-danger">${item.title}</span></td>
+                        <td><span style="color: var(--warning);">${item.sla} сек (Норма)</span></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) {
+                console.error("Ошибка загрузки событий", e);
+            }
+        }
+
+        loadEvents();
+        setInterval(loadEvents, 3000); // Автообновление каждые 3 секунды
+    </script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Halal Watch Pro - Этичный VMS для бизнеса</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --halal-green: #0A5C36;
+            --gold: #D4AF37;
+            --bg-dark: #0F1115;
+            --text-light: #E0E0E0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            overflow-x: hidden;
+        }
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(rgba(10, 92, 54, 0.8), rgba(15, 17, 21, 0.95)), url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=2070') center/cover;
+        }
+        .logo {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 20px;
+            border-radius: 20px;
+            box-shadow: 0 0 30px var(--gold);
+            background: white;
+            padding: 10px;
+        }
+        .logo img { width: 100%; height: 100%; object-fit: contain; }
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+        }
+        .subtitle {
+            font-size: 1.3rem;
+            max-width: 700px;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 1000px;
+            margin-bottom: 40px;
+        }
+        .feature-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+        .feature-card h3 { color: var(--gold); margin-bottom: 10px; }
+        .cta-button {
+            background: var(--halal-green);
+            color: white;
+            padding: 18px 45px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 5px 20px rgba(10, 92, 54, 0.5);
+        }
+        .cta-button:hover {
+            background: var(--gold);
+            color: var(--bg-dark);
+            transform: translateY(-3px);
+        }
+        .footer {
+            position: absolute;
+            bottom: 20px;
+            font-size: 0.9rem;
+            opacity: 0.6;
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 2.2rem; }
+            .features { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <section class="hero">
+        <div class="logo">
+            <img src="logo.png" alt="Halal Watch Pro Logo">
+        </div>
+        <h1>Halal Watch Pro</h1>
+        <p class="subtitle">
+            Этичная система видеонаблюдения для отелей, магазинов и клиник. 
+            AI-детекция, архив, ANPR. Без облаков. Все данные у вас.
+        </p>
+
+        <div class="features">
+            <div class="feature-card">
+                <h3>🤖 AI Анализ</h3>
+                <p>Детекция людей, падений, ЧП. Мгновенные алерты в журнал.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🚗 ANPR AZ</h3>
+                <p>Распознавание азербайджанских номеров. Поиск по базе 99-AA-999</p>
+            </div>
+            <div class="feature-card">
+                <h3>🔒 100% Halal</h3>
+                <p>Локальное хранение. Без передачи данных третьим лицам.</p>
+            </div>
+        </div>
+
+        <a href="/dashboard.html" class="cta-button">Войти в VMS Систему</a>
+
+        <div class="footer">
+            © 2026 Halal Watch Pro. Сделано в Баку
+        </div>
+    </section>
+</body>
+</html>

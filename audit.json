@@ -1,0 +1,50 @@
+[
+  {
+    "timestamp": "2026-09-11 21:55:19",
+    "user": "Система (ИИ)",
+    "action": "EXPORT_CLIP",
+    "details": "Оператор запустил нарезку видео: Донерная на Тверской_cam_1_________ (Начало: 10:30:00)"
+  },
+  {
+    "timestamp": "2026-09-11 19:37:38",
+    "user": "admin_operator",
+    "action": "EXPORT_CLIP",
+    "details": "Создан рабочий клип камеры kitchen (10:08:05) -> добавлен в архив"
+  },
+  {
+    "timestamp": "2026-09-11 19:36:22",
+    "user": "admin_operator",
+    "action": "EXPORT_CLIP",
+    "details": "Создан рабочий клип камеры kitchen (10:30:00) -> добавлен в архив"
+  },
+  {
+    "timestamp": "2026-09-11 18:09:38",
+    "user": "admin_core",
+    "action": "EXPORT_CLIP",
+    "details": "Создан рабочий клип камеры cam1 (12:00:00) -> добавлен в Playback"
+  },
+  {
+    "timestamp": "2026-09-11 18:07:03",
+    "user": "admin_core",
+    "action": "EXPORT_CLIP",
+    "details": "Создан рабочий клип камеры cam1 (12:00:00) -> добавлен в Playback"
+  },
+  {
+    "timestamp": "2026-09-11 18:02:09",
+    "user": "admin_core",
+    "action": "EXPORT_CLIP",
+    "details": "Создан рабочий клип камеры cam1 (12:00:00) -> добавлен в Playback"
+  },
+  {
+    "timestamp": "2026-09-11 17:27:02",
+    "user": "admin_core",
+    "action": "EXPORT_CLIP",
+    "details": "Запущен экспорт клипа для камеры cam1 (01)"
+  },
+  {
+    "timestamp": "2026-09-11 17:23:54",
+    "user": "admin_core",
+    "action": "EXPORT_CLIP",
+    "details": "Запущен экспорт клипа для камеры cam1 (12:00:00)"
+  }
+]

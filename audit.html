@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VMS & BI Core | Системный аудит</title>
+    <style>
+        :root {
+            --bg-dark: #0a0c10; --panel-bg: #14171d; --card-bg: #1e222a;
+            --text-main: #f3f4f6; --text-muted: #9ca3af;
+            --accent: #2563eb; --danger: #dc2626; --warning: #f59e0b; --success: #10b981;
+            --border: #2a2f3a; --radius-md: 6px; --radius-sm: 4px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Inter, sans-serif; background-color: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* Шапка */
+        .top-nav { height: 48px; background-color: var(--panel-bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; gap: 24px; font-size: 14px; }
+        .nav-brand { font-weight: bold; font-size: 16px; color: #fff; }
+        .nav-link { color: var(--text-muted); cursor: pointer; transition: 0.2s; text-decoration: none; }
+        .nav-link.active { color: #fff; font-weight: 600; }
+        .nav-link:hover { color: var(--text-main); }
+        .export-link { color: var(--warning); } .export-link:hover { color: #fcd34d; }
+
+        /* Рабочая область */
+        .workspace { display: flex; flex: 1; height: calc(100vh - 48px); overflow: hidden; padding: 24px; gap: 24px; }
+        
+        /* Левая панель: Статус системы */
+        .status-sidebar { width: 320px; display: flex; flex-direction: column; gap: 20px; flex-shrink: 0; overflow-y: auto; }
+        
+        .status-card { background: var(--panel-bg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; }
+        .card-title { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        
+        /* Виджет диска */
+        .disk-info { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; color: var(--text-muted); }
+        .progress-bar { width: 100%; height: 8px; background: var(--bg-dark); border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--success); width: 52%; border-radius: 4px; }
+        
+        /* Виджет служб */
+        .service-list { display: flex; flex-direction: column; gap: 12px; }
+        .service-item { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding-bottom: 12px; border-bottom: 1px dashed var(--border); }
+        .service-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+        .status-online { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16,185,129,0.2); }
+        .status-offline { background: rgba(220, 38, 38, 0.1); color: var(--danger); border: 1px solid rgba(220,38,38,0.2); }
+
+        /* Правая панель: Таблица логов */
+        .audit-panel { flex: 1; background: var(--panel-bg); border: 1px solid var(--border); border-radius: var(--radius-md); display: flex; flex-direction: column; overflow: hidden; }
+        .panel-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        
+        .btn-toolbar { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-main); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 12px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px; }
+        .btn-toolbar:hover { border-color: var(--accent); color: #fff; }
+        .btn-danger { color: var(--danger); border-color: rgba(220, 38, 38, 0.3); }
+        .btn-danger:hover { background: rgba(220, 38, 38, 0.1); border-color: var(--danger); }
+
+        .table-container { flex: 1; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+        th { background: var(--card-bg); color: var(--text-muted); padding: 12px 20px; font-weight: 600; border-bottom: 1px solid var(--border); position: sticky; top: 0; }
+        td { padding: 12px 20px; border-bottom: 1px solid var(--border); color: var(--text-main); }
+        tr:hover td { background: var(--card-bg); }
+        
+        .type-badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; background: var(--bg-dark); border: 1px solid var(--border); }
+        .empty-state { padding: 40px; text-align: center; color: var(--text-muted); font-size: 13px; }
+    </style>
+</head>
+<body>
+
+    <header class="top-nav">
+        <div class="nav-brand">VMS & BI Core</div>
+        <a href="dashboard.html" class="nav-link">Обзор объектов</a>
+        <a href="telephony.html" class="nav-link">IP-телефония & Чек-листы</a>
+        <a href="lab.html" class="nav-link">Видеолаборатория</a>
+        <a href="export.html" class="nav-link export-link">Export Master</a>
+        <a href="audit.html" class="nav-link active">Системный аудит</a>
+        
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 20px;">
+            <div style="display: flex; align-items: center; gap: 12px; border-left: 1px solid var(--border); padding-left: 20px;">
+                <span style="font-size: 13px; color: var(--text-muted);">Оператор: <strong style="color: #fff;">ADMIN</strong></span>
+                <span style="color: var(--danger); font-size: 12px; cursor: pointer;" onclick="if(confirm('Завершить сеанс и выйти?')) alert('Выход...');">Выход</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="workspace">
+        
+        <!-- ЛЕВАЯ ПАНЕЛЬ: МОНИТОРИНГ СИСТЕМЫ -->
+        <aside class="status-sidebar">
+            <div class="status-card">
+                <div class="card-title">🖥️ Вычислительное ядро</div>
+                <div class="service-list">
+                    <div class="service-item"><span>MediaMTX (RTSP Hub)</span> <span class="status-badge status-online">ONLINE</span></div>
+                    <div class="service-item"><span>VMS API Server (Порт 8080)</span> <span class="status-badge status-online">ONLINE</span></div>
+                    <div class="service-item"><span>Telegram Bot Bridge</span> <span class="status-badge status-online">ONLINE</span></div>
+                </div>
+            </div>
+
+            <div class="status-card">
+                <div class="card-title">🧠 AI Аналитика</div>
+                <div class="service-list">
+                    <div class="service-item"><span>Motion Detector (Движение)</span> <span class="status-badge status-online">ONLINE</span></div>
+                    <div class="service-item"><span>ANPR Engine (YOLOv8 + OCR)</span> <span class="status-badge status-online">ONLINE</span></div>
+                    <div class="service-item"><span>Распознавание лиц (FaceID)</span> <span class="status-badge status-offline">OFFLINE</span></div>
+                </div>
+            </div>
+
+            <div class="status-card">
+                <div class="card-title">💾 Хранилище видеоархива</div>
+                <div class="disk-info"><span>Локальный диск (D:)</span> <span>2.1 ТБ / 4 ТБ</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width: 52%;"></div></div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 12px; text-align: center;">
+                    Автоочистка (Ротация): включена (7 дней)
+                </div>
+            </div>
+        </aside>
+
+        <!-- ПРАВАЯ ПАНЕЛЬ: ЖУРНАЛ СОБЫТИЙ -->
+        <main class="audit-panel">
+            <div class="panel-header">
+                <div class="card-title" style="margin: 0;">Журнал системных событий</div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-toolbar" id="btn-refresh" onclick="loadAuditLogs()">
+                        <span id="refresh-icon">🔄</span> Обновить лог
+                    </button>
+                    <button class="btn-toolbar btn-danger" onclick="clearAlarmsCache()">🗑 Очистить кэш ИИ</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 180px;">Дата и Время</th>
+                            <th style="width: 150px;">Инициатор</th>
+                            <th style="width: 150px;">Модуль</th>
+                            <th>Описание события</th>
+                        </tr>
+                    </thead>
+                    <tbody id="audit-table-body">
+                        <tr><td colspan="4" class="empty-state">Загрузка журнала...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+
+    </div>
+
+    <script>
+        async function loadAuditLogs() {
+            const tbody = document.getElementById('audit-table-body');
+            const icon = document.getElementById('refresh-icon');
+            
+            // Крутим иконку для визуального отклика
+            icon.style.transform = 'rotate(360deg)';
+            icon.style.transition = 'transform 0.5s ease';
+            setTimeout(() => icon.style.transform = 'none', 500);
+
+            try {
+                const res = await fetch('/api/audit');
+                const logs = await res.json();
+                
+                if (logs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Журнал пуст.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                logs.forEach(log => {
+                    let badgeColor = 'var(--text-muted)';
+                    if (log.type === 'СТАТУС') badgeColor = 'var(--success)';
+                    if (log.type === 'ВИДЕОАРХИВ') badgeColor = 'var(--accent)';
+                    if (log.type === 'АЛАРМ') badgeColor = 'var(--danger)';
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td style="font-family: monospace; color: var(--text-muted);">${log.time}</td>
+                            <td style="font-weight: 600;">${log.user}</td>
+                            <td><span class="type-badge" style="color: ${badgeColor}; border-color: ${badgeColor}40;">${log.type}</span></td>
+                            <td>${log.desc}</td>
+                        </tr>
+                    `;
+                });
+            } catch(e) {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-state" style="color: var(--danger);">Ошибка связи с сервером!</td></tr>';
+            }
+        }
+
+        async function clearAlarmsCache() {
+            if (!confirm("Очистить историю тревог и распознанных номеров?")) return;
+            try {
+                const res = await fetch('/api/clear_alarms', { method: 'POST' });
+                const data = await res.json();
+                alert(data.message);
+                loadAuditLogs();
+            } catch(e) {
+                alert("Ошибка при очистке кэша.");
+            }
+        }
+
+        window.onload = loadAuditLogs;
+    </script>
+</body>
+</html>

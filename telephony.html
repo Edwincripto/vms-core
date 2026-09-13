@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VMS & BI Core | IP-телефония & Чек-листы</title>
+    <style>
+        :root {
+            --bg-dark: #0a0c10; --panel-bg: #14171d; --card-bg: #1e222a;
+            --text-main: #f3f4f6; --text-muted: #9ca3af;
+            --accent: #2563eb; --danger: #dc2626; --warning: #f59e0b; --success: #10b981;
+            --border: #2a2f3a; --radius-md: 6px; --radius-sm: 4px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Inter, sans-serif; background-color: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        .top-nav { height: 48px; background-color: var(--panel-bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; gap: 24px; font-size: 14px; }
+        .nav-brand { font-weight: bold; font-size: 16px; letter-spacing: 0.5px; color: #fff; }
+        .nav-link { color: var(--text-muted); cursor: pointer; transition: 0.2s; text-decoration: none; }
+        .nav-link.active { color: var(--text-main); font-weight: 600; }
+        .nav-link:hover { color: var(--text-main); }
+
+        .workspace { display: flex; flex: 1; height: calc(100vh - 48px); padding: 20px; gap: 20px; overflow: hidden; }
+        
+        /* Левая колонка: Журнал звонков и плеер */
+        .left-column { flex: 1.2; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
+        
+        .call-log-panel { background: var(--panel-bg); border: 1px solid var(--border); border-radius: var(--radius-md); display: flex; flex-direction: column; overflow: hidden; }
+        .panel-header { padding: 14px 16px; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+        
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+        th { background: var(--card-bg); color: var(--text-muted); padding: 10px 16px; font-weight: 600; border-bottom: 1px solid var(--border); }
+        td { padding: 10px 16px; border-bottom: 1px solid var(--border); color: var(--text-main); }
+        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+        .status-in { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .status-missed { background: rgba(220, 38, 38, 0.2); color: var(--danger); }
+        .status-out { background: rgba(37, 99, 235, 0.2); color: var(--accent); }
+        .listen-btn { color: var(--accent); text-decoration: none; cursor: pointer; font-weight: 600; }
+        .listen-btn:hover { text-decoration: underline; }
+
+        .card { background: var(--panel-bg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .card-title { font-size: 14px; font-weight: bold; color: #fff; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+        
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .form-group { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-muted); }
+        .input-box { background: var(--bg-dark); border: 1px solid var(--border); color: #fff; padding: 8px 10px; border-radius: var(--radius-sm); outline: none; font-size: 13px; }
+        .input-box:focus { border-color: var(--accent); }
+
+        /* Правая колонка: Панель чек-листов */
+        .checklist-panel { flex: 1; background: var(--panel-bg); border: 1px solid var(--border); border-radius: var(--radius-md); display: flex; flex-direction: column; overflow: hidden; }
+        
+        .tabs { display: flex; border-bottom: 1px solid var(--border); }
+        .tab-btn { flex: 1; padding: 12px; background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.2s; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(37, 99, 235, 0.05); }
+        .tab-btn:hover { color: var(--text-main); }
+
+        .checklist-content { padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+        .check-item { display: flex; gap: 10px; align-items: flex-start; background: var(--card-bg); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+        .check-item input[type="checkbox"] { margin-top: 3px; cursor: pointer; width: 16px; height: 16px; accent-color: var(--accent); }
+        .check-text { font-size: 13px; line-height: 1.4; }
+        .check-title { font-weight: 600; margin-bottom: 2px; color: var(--text-main); }
+        .check-desc { color: var(--text-muted); font-size: 11px; }
+
+        .progress-bar-container { height: 6px; background: var(--bg-dark); border-radius: 3px; margin: 12px 16px 0 16px; overflow: hidden; }
+        .progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s ease; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: flex; }
+
+        .btn-save { background: var(--accent); color: #fff; border: none; padding: 10px 16px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; font-weight: 600; transition: 0.2s; text-align: center; margin: 16px; }
+        .btn-save:hover { background: #1d4ed8; }
+        
+        audio { width: 100%; margin-top: 6px; }
+    </style>
+</head>
+<body>
+
+    <header class="top-nav">
+        <div class="nav-brand">VMS & BI Core</div>
+        <a href="dashboard.html" class="nav-link">Обзор объектов</a>
+        <a href="telephony.html" class="nav-link active">IP-телефония & Чек-листы</a>
+        <a href="lab.html" class="nav-link">Видеолаборатория</a>
+        <a href="export.html" class="nav-link" style="color: var(--warning);">Export Master</a>
+        <a href="audit.html" class="nav-link">Системный аудит</a>
+
+        <!-- Работающий блок Администратора -->
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 20px;">
+            <div style="display: flex; align-items: center; gap: 12px; border-left: 1px solid var(--border); padding-left: 20px;">
+                <span style="font-size: 13px; color: var(--text-muted); cursor: pointer;" onclick="alert('Меню профиля в разработке')">Оператор: <strong style="color: #fff;">ADMIN</strong></span>
+                <span style="color: var(--danger); font-size: 12px; cursor: pointer;" onclick="if(confirm('Завершить сеанс и выйти?')) alert('Выход...');">Выход</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <!-- Левая часть: Журнал, Плеер и Ответственные -->
+        <div class="left-column">
+            <!-- Журнал звонков -->
+            <div class="call-log-panel">
+                <div class="panel-header">
+                    <span>Журнал звонков АТС (Архив проектов)</span>
+                    <span style="font-size: 12px; color: var(--success);">● Линия активна</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Время</th>
+                            <th>Клиент</th>
+                            <th>Тип</th>
+                            <th>Длит.</th>
+                            <th>Оператор АТС</th>
+                            <th>Аудио</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>19:24:10</td>
+                            <td>+994 50 123 45 67</td>
+                            <td><span class="status-badge status-in">Входящий</span></td>
+                            <td>02:15</td>
+                            <td>Ресепшен 1</td>
+                            <td><span class="listen-btn" onclick="loadAudio('Клиника Здоровье', 'Регистратура', 'Звонок от 19:24 (Клиника)')">▶ Слушать</span></td>
+                        </tr>
+                        <tr>
+                            <td>19:10:05</td>
+                            <td>+994 55 987 65 43</td>
+                            <td><span class="status-badge status-out">Исходящий</span></td>
+                            <td>01:30</td>
+                            <td>Ресепшен 2</td>
+                            <td><span class="listen-btn" onclick="loadAudio('Отель Grand Plaza', 'Администратор', 'Звонок от 19:10 (Отель)')">▶ Слушать</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Аудиоплеер -->
+            <div class="card">
+                <div class="card-title">Плеер анализа записи</div>
+                <div id="current-audio-label" style="font-size: 12px; color: var(--text-muted);">Выберите запись в журнале выше для прослушивания</div>
+                <audio id="audio-player" controls></audio>
+            </div>
+
+            <!-- Метаданные проверки (ФИО сотрудников) -->
+            <div class="card">
+                <div class="card-title">Данные аудита и разметки ошибок</div>
+                <div class="form-grid">
+                    <<div class="form-group">
+    <label class="form-label">Оператор (Сотрудник)</label>
+    <select class="form-control" id="audit-employee">
+        <option value="" disabled selected>Выберите сотрудника...</option>
+        <option value="Mustafayev Edvin">Мустафаев Эдвин (ID: 101)</option>
+        <option value="Aliyev Leyla">Алиева Лейла (ID: 102)</option>
+        <option value="Hasanov Rashad">Гасанов Рашад (ID: 103)</option>
+    </select>
+</div>
+                    <div class="form-group">
+                        <label>ФИО сотрудника объекта (Кого проверяют):</label>
+                        <input type="text" id="obj-employee" class="input-box" placeholder="Например: Смирнова А.">
+                    </div>
+                    <div class="form-group">
+                        <label>ФИО нашего оператора (Аудитор):</label>
+                        <input type="text" id="our-operator" class="input-box" value="Edvin Mustafayev">
+                    </div>
+                    <div class="form-group">
+                        <label>Статус проверки:</label>
+                        <select id="audit-result" class="input-box">
+                            <option value="passed">Проверен (Без грубых нарушений)</option>
+                            <option value="failed">Обнаружены ошибки сотрудника</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Правая часть: Чек-листы (Клиника / Отель) -->
+        <div class="checklist-panel">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('clinic')">🏥 Регистратура Клиники</button>
+                <button class="tab-btn" onclick="switchTab('hotel')">🏨 Ресепшен Отеля</button>
+            </div>
+            
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress"></div>
+            </div>
+
+            <!-- Чек-лист Клиники -->
+            <div class="checklist-content tab-content active" id="tab-clinic"></div>
+
+            <!-- Чек-лист Отеля -->
+            <div class="checklist-content tab-content" id="tab-hotel"></div>
+
+            <button class="btn-save" onclick="saveCheckedAudit()">💾 Сохранить и отправить в Export Master</button>
+        </div>
+    </div>
+
+    <script>
+        // Данные чек-листов (по 10 пунктов)
+        const clinicChecklist = [
+            { title: "Приветствие и идентификация", desc: "Здравствуйте! Клиника [Название], меня зовут [Имя]. Слушаю вас?" },
+            { title: "Выявление цели", desc: "Запись к врачу, анализы или конкретная услуга?" },
+            { title: "Уточнение симптомов", desc: "Плановый осмотр или что-то беспокоит? К какому специалисту?" },
+            { title: "Предложение времени", desc: "У нас принимает врач [ФИО]. Есть время на [дата/время]." },
+            { title: "Стоимость и условия", desc: "Озвучивание стоимости и правил подготовки (натощак и т.д.)." },
+            { title: "Сбор данных", desc: "ФИО пациента полностью и дата рождения." },
+            { title: "Контактный номер", desc: "Актуальный телефон для WhatsApp/SMS напоминания." },
+            { title: "Расположение", desc: "Наш адрес, ориентир, как проехать и парковка." },
+            { title: "Правила отмены", desc: "Просьба предупредить об отмене минимум за 3 часа." },
+            { title: "Завершение разговора", desc: "Мы записали вас. Будем рады видеть, хорошего дня!" }
+        ];
+
+        const hotelChecklist = [
+            { title: "Приветствие и бренд", desc: "Добрый день! Отель [Название], меня зовут [Имя]. Чем могу помочь?" },
+            { title: "Тип бронирования", desc: "Новая бронь, детали текущей или вопросы по услугам?" },
+            { title: "Параметры заезда", desc: "Точные даты заезда/выезда. Количество гостей (взрослые/дети)." },
+            { title: "Категория номера", desc: "Презентация свободных номеров (Стандарт/Улучшенный)." },
+            { title: "Тариф и условия", desc: "Стоимость за сутки и что включено (например, завтрак)." },
+            { title: "Дополнительные пожелания", desc: "Требуется ли трансфер или детская кроватка? (Upsell)" },
+            { title: "Оплата и отмена", desc: "Условия предоплаты и крайний срок бесплатной отмены." },
+            { title: "Сбор данных гостя", desc: "ФИО и контактный мобильный телефон." },
+            { title: "Регламент отеля", desc: "Время заезда (с 14:00) и выезда (до 12:00)." },
+            { title: "Завершение разговора", desc: "Бронь оформлена, подтверждение отправим. Ждем вас!" }
+        ];
+
+        function renderChecklist(containerId, items) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            items.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'check-item';
+                div.innerHTML = `
+                    <input type="checkbox" onchange="updateProgress()">
+                    <div class="check-text">
+                        <div class="check-title">${index + 1}. ${item.title}</div>
+                        <div class="check-desc">${item.desc}</div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        renderChecklist('tab-clinic', clinicChecklist);
+        renderChecklist('tab-hotel', hotelChecklist);
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            if(tabName === 'clinic') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('tab-clinic').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('tab-hotel').classList.add('active');
+            }
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const activeTab = document.querySelector('.tab-content.active');
+            const checkboxes = activeTab.querySelectorAll('input[type="checkbox"]');
+            const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+            const percent = (checkedCount / checkboxes.length) * 100;
+            document.getElementById('progress').style.width = percent + '%';
+        }
+
+        function loadAudio(project, role, desc) {
+            document.getElementById('current-audio-label').innerText = `Прослушивание: ${desc}`;
+            // Здесь привязывается реальный аудиофайл из архива АТС
+            const player = document.getElementById('audio-player');
+            player.src = "#"; 
+            // Для теста можно подставить реальную ссылку на mp3
+        }
+
+        function saveCheckedAudit() {
+            const project = document.getElementById('audit-project').value;
+            const employee = document.getElementById('obj-employee').value;
+            const operator = document.getElementById('our-operator').value;
+            
+            if (!employee) {
+                alert("Пожалуйста, укажите ФИО сотрудника объекта!");
+                return;
+            }
+
+            const activeTab = document.querySelector('.tab-content.active');
+            const checkboxes = activeTab.querySelectorAll('input[type="checkbox"]');
+            let completed = 0;
+            checkboxes.forEach(cb => { if(cb.checked) completed++; });
+
+            alert(`Аудит по проекту "${project}" сохранен!\nСотрудник: ${employee}\nПроверил оператор: ${operator}\nВыполнено пунктов чек-листа: ${completed} из ${checkboxes.length}\nФайл перенаправлен в Export Master.`);
+        }
+    </script>
+</body>
+</html>

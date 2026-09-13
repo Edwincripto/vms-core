@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VMS Enterprise Core | Archive Playback</title>
+    <style>
+        :root {
+            --bg-dark: #0a0c10; --panel-bg: #14171d; --card-bg: #1e222a;
+            --text-main: #f3f4f6; --text-muted: #9ca3af;
+            --accent: #2563eb; --danger: #dc2626; --warning: #f59e0b; --success: #10b981;
+            --border: #2a2f3a; --radius-md: 6px; --radius-sm: 4px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Inter, sans-serif; background-color: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        .top-nav { height: 48px; background-color: var(--panel-bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; gap: 24px; font-size: 14px; }
+        .nav-brand { font-weight: bold; font-size: 16px; letter-spacing: 0.5px; }
+        .nav-link { color: var(--text-muted); cursor: pointer; transition: 0.2s; text-decoration: none; }
+        .nav-link.active { color: var(--text-main); font-weight: 600; }
+        .nav-link:hover { color: var(--text-main); }
+
+        .workspace { display: flex; flex: 1; height: calc(100vh - 48px); }
+        .sidebar-left { width: 300px; background-color: var(--panel-bg); border-right: 1px solid var(--border); padding: 16px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+        .main-view { flex: 1; display: flex; flex-direction: column; background: #000; position: relative; }
+
+        .form-group { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+        .form-group label { color: var(--text-muted); }
+        .form-control { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-main); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 13px; outline: none; }
+        
+        .timeline-container { height: 80px; background: var(--panel-bg); border-top: 1px solid var(--border); padding: 12px; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+        .timeline-bar { height: 24px; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); position: relative; cursor: pointer; }
+        .timeline-progress { height: 100%; background: rgba(37, 99, 235, 0.4); width: 0%; border-radius: var(--radius-sm); }
+
+        video { width: 100%; height: 100%; object-fit: contain; }
+    </style>
+</head>
+<body>
+
+    <header class="top-nav">
+        <div class="nav-brand">VMS Enterprise Core</div>
+        <a href="dashboard.html" class="nav-link">Live</a>
+        <a href="playback.html" class="nav-link active">Playback</a>
+        <a href="maps.html" class="nav-link">Maps</a>
+        <a href="events.html" class="nav-link">Events</a>
+        <a href="export.html" class="nav-link" style="color: var(--danger);">Export Master</a>
+        <a href="audit.html" class="nav-link">Audit</a>
+    </header>
+
+    <div class="workspace">
+        <aside class="sidebar-left">
+            <h3 style="font-size: 14px; font-weight: 600;">Управление архивом</h3>
+            
+            <div class="form-group">
+                <label>Выберите камеру</label>
+                <select class="form-control" id="archive-camera" onchange="loadArchives()">
+                    <option value="cam1">cam1 (HD WebCam)</option>
+                    <option value="cam2">cam2 (Parking)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Дата архива</label>
+                <input type="date" class="form-control" id="archive-date" value="2026-09-11">
+            </div>
+
+            <div class="form-group">
+                <label>Доступные записи / сегменты</label>
+                <div id="archive-files-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 250px; overflow-y: auto;">
+                    <!-- Сюда динамически подгружаются файлы архива -->
+                    <span style="font-size: 12px; color: var(--text-muted);">Загрузка списка...</span>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-view">
+            <video id="archive-player" controls autoplay>
+                Ваш браузер не поддерживает тег video.
+            </video>
+            
+            <div class="timeline-container">
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+                    <span id="time-start">00:00:00</span>
+                    <span id="time-current" style="color: var(--accent); font-weight: bold;">Выберете файл архива слева</span>
+                    <span id="time-end">23:59:59</span>
+                </div>
+                <div class="timeline-bar" onclick="seekVideo(event)">
+                    <div class="timeline-progress" id="timeline-progress"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const player = document.getElementById('archive-player');
+        
+        async function loadArchives() {
+            const cam = document.getElementById('archive-camera').value;
+            const listContainer = document.getElementById('archive-files-list');
+            listContainer.innerHTML = '<span style="font-size: 12px; color: var(--text-muted);">Поиск записей...</span>';
+
+            try {
+                const response = await fetch('/api/archives');
+                const files = await response.json();
+                
+                // Фильтруем файлы по выбранной камере (например, если в имени есть cam1)
+                const filtered = files.filter(f => f.filename.includes(cam));
+
+                if (filtered.length === 0) {
+                    listContainer.innerHTML = '<span style="font-size: 12px; color: var(--text-muted);">Нет записей для этой камеры</span>';
+                    return;
+                }
+
+                listContainer.innerHTML = '';
+                filtered.forEach(file => {
+                    const btn = document.createElement('button');
+                    btn.className = 'form-control';
+                    btn.style.cssText = 'text-align: left; cursor: pointer; background: var(--card-bg); border: 1px solid var(--border);';
+                    btn.innerText = file.filename;
+                    btn.onclick = () => playArchive(file.filename);
+                    listContainer.appendChild(btn);
+                });
+            } catch (e) {
+                listContainer.innerHTML = '<span style="font-size: 12px; color: var(--danger);">Ошибка загрузки архива</span>';
+            }
+        }
+
+        function playArchive(filename) {
+            player.src = `/archive/${filename}`;
+            document.getElementById('time-current').innerText = `Воспроизведение: ${filename}`;
+            player.play();
+        }
+
+        player.addEventListener('timeupdate', () => {
+            if (player.duration) {
+                const percent = (player.currentTime / player.duration) * 100;
+                document.getElementById('timeline-progress').style.width = percent + '%';
+            }
+        });
+
+        function seekVideo(event) {
+            const bar = event.currentTarget;
+            const rect = bar.getBoundingClientRect();
+            const pos = (event.clientX - rect.left) / rect.width;
+            if (player.duration) {
+                player.currentTime = pos * player.duration;
+            }
+        }
+
+        // Загрузка при старте
+        loadArchives();
+    </script>
+</body>
+</html>

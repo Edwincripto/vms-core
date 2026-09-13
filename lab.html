@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VMS & BI Core | Видеолаборатория</title>
+    <style>
+        :root {
+            --bg-dark: #0a0c10; --panel-bg: #14171d; --card-bg: #1e222a;
+            --text-main: #f3f4f6; --text-muted: #9ca3af;
+            --accent: #2563eb; --danger: #dc2626; --warning: #f59e0b; --success: #10b981;
+            --border: #2a2f3a; --radius-md: 6px; --radius-sm: 4px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Inter, sans-serif; background-color: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        .top-nav { height: 48px; background-color: var(--panel-bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; gap: 24px; font-size: 14px; }
+        .nav-brand { font-weight: bold; font-size: 16px; color: #fff; }
+        .nav-link { color: var(--text-muted); cursor: pointer; transition: 0.2s; text-decoration: none; }
+        .nav-link.active { color: var(--text-main); font-weight: 600; }
+        .nav-link:hover { color: var(--text-main); }
+        
+        .header-right { margin-left: auto; display: flex; align-items: center; gap: 20px; }
+        .admin-block { display: flex; align-items: center; gap: 12px; border-left: 1px solid var(--border); padding-left: 20px; }
+
+        .workspace { display: flex; flex: 1; height: calc(100vh - 48px); overflow: hidden; }
+        
+        .sidebar { width: 320px; background-color: var(--panel-bg); padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; border-right: 1px solid var(--border); overflow-y: auto; }
+        .main-view { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); padding: 16px; gap: 16px; }
+
+        .sidebar-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: #fff; }
+        
+        .btn { background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border); padding: 8px 16px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; font-weight: 600; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn:hover { border-color: #4b5563; }
+        .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+        .btn-primary:hover { background: #1d4ed8; border-color: #1d4ed8; }
+        .btn-outline-success { background: transparent; color: var(--success); border-color: var(--success); }
+        .btn-outline-success:hover { background: rgba(16, 185, 129, 0.1); }
+        .btn-outline-danger { background: transparent; color: var(--danger); border-color: var(--danger); margin-left: auto; }
+        .btn-outline-danger:hover { background: rgba(220, 38, 38, 0.1); }
+
+        .video-container { flex: 1; background: #000; border-radius: var(--radius-md); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+        video { width: 100%; height: 100%; object-fit: contain; }
+        
+        .controls-panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+        .panel-title { font-size: 14px; font-weight: bold; margin-bottom: 4px; }
+        
+        .timeline-controls { display: flex; gap: 16px; align-items: center; }
+        .time-box { background: var(--bg-dark); border: 1px solid var(--border); padding: 8px 12px; border-radius: var(--radius-sm); font-family: monospace; font-size: 16px; color: var(--accent); min-width: 100px; text-align: center; }
+        
+        .file-upload-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
+        .file-upload-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; }
+
+        .log-list { list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
+        .log-item { background: var(--bg-dark); padding: 10px; border-radius: var(--radius-sm); border-left: 3px solid transparent; font-family: monospace; border: 1px solid var(--border); }
+        .log-item-active { border-left-color: var(--accent); }
+        
+        .micro-controls { display: flex; justify-content: center; gap: 8px; align-items: center; }
+        .btn-micro { padding: 6px 12px; font-size: 12px; background: var(--panel-bg); }
+        .speed-btn { background: var(--card-bg); border: 1px solid var(--border); color: #fff; padding: 4px 10px; border-radius: var(--radius-sm); cursor: pointer; }
+        .speed-btn:hover { border-color: var(--accent); }
+    </style>
+</head>
+<body>
+
+    <header class="top-nav">
+        <div class="nav-brand">VMS & BI Core</div>
+        <a href="dashboard.html" class="nav-link">Обзор объектов</a>
+        <a href="telephony.html" class="nav-link">IP-телефония & Чек-листы</a>
+        <a href="lab.html" class="nav-link active">Видеолаборатория</a>
+        <a href="export.html" class="nav-link" style="color: var(--warning);">Export Master</a>
+        <a href="audit.html" class="nav-link">Системный аудит</a>
+        
+        <!-- Работающий блок Администратора -->
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 20px;">
+            <div style="display: flex; align-items: center; gap: 12px; border-left: 1px solid var(--border); padding-left: 20px;">
+                <span style="font-size: 13px; color: var(--text-muted); cursor: pointer;" onclick="alert('Меню профиля в разработке')">Оператор: <strong style="color: #fff;">ADMIN</strong></span>
+                <span style="color: var(--danger); font-size: 12px; cursor: pointer;" onclick="if(confirm('Завершить сеанс и выйти?')) alert('Выход...');">Выход</span>
+            </div>
+        </div>
+    </header>
+    <div class="workspace">
+        <aside class="sidebar">
+            <div>
+                <h3 class="sidebar-title">Работа с архивом</h3>
+                <div class="file-upload-wrapper">
+                    <button class="btn btn-primary" style="width: 100%;">📁 Открыть видеоархив</button>
+                    <input type="file" id="video-upload" accept="video/mp4" onchange="loadVideo(event)">
+                </div>
+            </div>
+            
+            <div>
+                <h3 class="sidebar-title">Готовые нарезки</h3>
+                <ul class="log-list" id="exports-list">
+                    <li class="log-item" style="color: var(--text-muted);">Папка пуста</li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="sidebar-title">Журнал действий</h3>
+                <ul class="log-list" id="action-log"></ul>
+            </div>
+        </aside>
+
+        <main class="main-view">
+            <div class="video-container">
+                <video id="archive-player" controls></video>
+                <div id="no-video-overlay" style="position: absolute; color: var(--text-muted); pointer-events: none;">Видео не загружено</div>
+            </div>
+
+            <div class="micro-controls">
+                <button class="btn btn-micro" onclick="seekVideo(-1)">⏪ -1 сек</button>
+                <button class="btn btn-micro" onclick="seekVideo(-0.1)">◀ -0.1 сек</button>
+                <button class="btn btn-micro" onclick="seekVideo(0.1)">▶ +0.1 сек</button>
+                <button class="btn btn-micro" onclick="seekVideo(1)">⏩ +1 сек</button>
+                
+                <span style="color: var(--text-muted); font-size: 12px; margin-left: 20px;">Скорость:</span>
+                <button class="speed-btn" onclick="setSpeed(1)">1x</button>
+                <button class="speed-btn" onclick="setSpeed(2)">2x</button>
+                <button class="speed-btn" onclick="setSpeed(4)">4x</button>
+                <button class="speed-btn" onclick="setSpeed(6)">6x</button>
+            </div>
+
+            <div class="controls-panel">
+                <div class="panel-title">Инструменты оператора</div>
+                
+                <div class="timeline-controls">
+                    <button class="btn" onclick="setMarker('start')">Установить НАЧАЛО 📍</button>
+                    <div class="time-box" id="time-start">00:00.00</div>
+                    <span style="color: var(--text-muted);">—</span>
+                    <div class="time-box" id="time-end">00:00.00</div>
+                    <button class="btn" onclick="setMarker('end')">Установить КОНЕЦ 📍</button>
+                </div>
+
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <button class="btn" onclick="takeScreenshot()">📸 Сделать скриншот</button>
+                    <button class="btn btn-primary" onclick="exportClip()">✂️ Сформировать нарезку</button>
+                    <button class="btn btn-outline-success" onclick="sendToTelegram()">✈️ Отправить работодателю</button>
+                    <button class="btn btn-outline-danger" onclick="deleteSelected()">🗑 Удалить брак</button>
+                </div>
+            </div>
+        </main>
+    </div>
+    <canvas id="canvas" style="display: none;"></canvas>
+
+    <script>
+        const player = document.getElementById('archive-player');
+        const overlay = document.getElementById('no-video-overlay');
+        const log = document.getElementById('action-log');
+        let currentFileName = "";
+
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return "00:00.00";
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+            const ms = Math.floor((seconds % 1) * 100).toString().padStart(2, '0');
+            return `${m}:${s}.${ms}`;
+        }
+
+        function addLog(text) {
+            const li = document.createElement('li');
+            li.className = 'log-item log-item-active';
+            const time = new Date().toLocaleTimeString('ru-RU');
+            li.innerHTML = `<span style="color: var(--text-muted)">[${time}]</span> ${text}`;
+            if (log.innerHTML.includes("Ожидание")) log.innerHTML = '';
+            log.prepend(li);
+            sessionStorage.setItem('vms_lab_logs', log.innerHTML);
+        }
+
+        function restoreLogs() {
+            const savedLogs = sessionStorage.getItem('vms_lab_logs');
+            if (savedLogs) log.innerHTML = savedLogs;
+            else log.innerHTML = '<li class="log-item" style="color: var(--text-muted);">Ожидание действий...</li>';
+        }
+
+        function loadVideo(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            currentFileName = file.name;
+            player.src = URL.createObjectURL(file);
+            overlay.style.display = 'none';
+            addLog(`Загружен архив: ${currentFileName}`);
+        }
+
+        function seekVideo(seconds) {
+            if (!player.src) return;
+            player.currentTime += seconds;
+        }
+
+        // Новая функция скорости
+        function setSpeed(rate) {
+            const player = document.getElementById('archive-player');
+            if (!player.src && !player.currentSrc) return;
+            
+            // На высоких скоростях браузеры блокируют воспроизведение из-за звука.
+            // Поэтому при ускорении >2x принудительно отключаем звук, а на 1x-2x возвращаем.
+            if (rate > 2) {
+                player.muted = true;
+            } else {
+                player.muted = false;
+            }
+            
+            player.playbackRate = rate;
+            
+            // Принудительно запускаем видео, если оно стояло на паузе при нажатии
+            player.play(); 
+            
+            addLog(`Установлена скорость воспроизведения: ${rate}x`);
+        }
+        function setMarker(type) {
+            if (!player.src) return alert("Сначала загрузите видео!");
+            const timeStr = formatTime(player.currentTime);
+            document.getElementById(`time-${type}`).innerText = timeStr;
+            addLog(`${type === 'start' ? 'Начало' : 'Конец'} отрезка: ${timeStr}`);
+        }
+
+        function takeScreenshot() {
+            if (!player.src) return alert("Сначала загрузите видео!");
+            const canvas = document.getElementById('canvas');
+            canvas.width = player.videoWidth;
+            canvas.height = player.videoHeight;
+            canvas.getContext('2d').drawImage(player, 0, 0, canvas.width, canvas.height);
+            const a = document.createElement('a');
+            a.href = canvas.toDataURL('image/jpeg');
+            a.download = `Скрин_${currentFileName}_${formatTime(player.currentTime)}.jpg`;
+            a.click();
+            addLog(`Сохранен скриншот`);
+        }
+
+        async function fetchExports() {
+            try {
+                const res = await fetch('/api/exports');
+                const files = await res.json();
+                const list = document.getElementById('exports-list');
+                list.innerHTML = '';
+                if (files.length === 0) {
+                    list.innerHTML = '<li class="log-item" style="color: var(--text-muted);">Папка пуста</li>';
+                    return;
+                }
+                files.forEach(f => {
+                    list.innerHTML += `<li class="log-item" style="display:flex; align-items: center; gap: 10px; border-left-color: var(--success);">
+                        <input type="checkbox" class="export-checkbox" value="${f}" style="cursor: pointer; width: 14px; height: 14px; accent-color: var(--danger);">
+                        <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;" title="${f}">${f}</span>
+                    </li>`;
+                });
+            } catch(e) { console.error(e); }
+        }
+
+        async function deleteSelected() {
+            const checkboxes = document.querySelectorAll('.export-checkbox:checked');
+            const filesToDelete = Array.from(checkboxes).map(cb => cb.value);
+            if (filesToDelete.length === 0) return alert("Сначала выберите галочкой файлы для удаления!");
+            if (!confirm(`Удалить выбранные нарезки (${filesToDelete.length} шт.)?`)) return;
+            addLog(`Удаление бракованных файлов...`);
+            try {
+                const response = await fetch('/api/delete_exports', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ files: filesToDelete })
+                });
+                const result = await response.json();
+                if (result.status === "success") { addLog(result.message); fetchExports(); }
+            } catch (e) {}
+        }
+
+        async function exportClip() {
+            const start = document.getElementById('time-start').innerText;
+            const end = document.getElementById('time-end').innerText;
+            if (start === "00:00.00" && end === "00:00.00") return alert("Установите маркеры!");
+            if (!currentFileName) return alert("Сначала загрузите видео!");
+            
+            addLog(`Вырезаем фрагмент (с конвертацией)...`);
+            try {
+                const response = await fetch('/api/cut', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: currentFileName, start, end })
+                });
+                const result = await response.json();
+                if (result.status === "success") { addLog(`Успех! Файл готов.`); fetchExports(); }
+                else { addLog(`Ошибка: ${result.message}`); }
+            } catch(e) { addLog(`Ошибка связи с сервером!`); }
+        }
+
+        async function sendToTelegram() {
+            const checkboxes = document.querySelectorAll('.export-checkbox:checked');
+            const filesToSend = Array.from(checkboxes).map(cb => cb.value);
+            if (filesToSend.length === 0) return alert("Выберите галочкой видео для отправки!");
+
+            addLog(`Отправка в Telegram (${filesToSend.length} шт.)...`);
+            try {
+                const response = await fetch('/api/telegram', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ files: filesToSend })
+                });
+                const result = await response.json();
+                if (result.status === "success") addLog(`Успешно отправлено: ${result.count} шт.!`);
+                else addLog(`Ошибка: ${result.message}`);
+            } catch (e) { addLog(`Ошибка при отправке в Telegram!`); }
+        }
+
+        window.onload = () => { restoreLogs(); fetchExports(); };
+    </script>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VMS Enterprise Core | Interactive Map</title>
+    <style>
+        :root {
+            --bg-dark: #0a0c10; --panel-bg: #14171d; --card-bg: #1e222a;
+            --text-main: #f3f4f6; --text-muted: #9ca3af;
+            --accent: #2563eb; --danger: #dc2626; --warning: #f59e0b; --success: #10b981;
+            --border: #2a2f3a; --radius-md: 6px; --radius-sm: 4px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Inter, sans-serif; background-color: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        .top-nav { height: 48px; background-color: var(--panel-bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; gap: 24px; font-size: 14px; }
+        .nav-brand { font-weight: bold; font-size: 16px; letter-spacing: 0.5px; }
+        .nav-link { color: var(--text-muted); cursor: pointer; transition: 0.2s; text-decoration: none; }
+        .nav-link.active { color: var(--text-main); font-weight: 600; }
+        .nav-link:hover { color: var(--text-main); }
+
+        .workspace { display: flex; flex: 1; height: calc(100vh - 48px); position: relative; overflow: hidden; }
+        
+        .map-canvas { flex: 1; background: #12151c; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; background-image: radial-gradient(var(--border) 1px, transparent 1px); background-size: 30px 30px; }
+        
+        .floorplan { width: 800px; height: 500px; background: var(--panel-bg); border: 2px solid var(--border); border-radius: var(--radius-md); position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+        .room { position: absolute; border: 1px dashed var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 12px; font-weight: 600; text-transform: uppercase; }
+
+        .camera-marker { position: absolute; width: 36px; height: 36px; background: var(--card-bg); border: 2px solid var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transform: translate(-50%, -50%); transition: 0.2s; z-index: 10; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .camera-marker:hover { transform: translate(-50%, -50%) scale(1.15); border-color: var(--text-main); }
+        .camera-marker.alarm { border-color: var(--danger); background: rgba(220, 38, 38, 0.2); animation: pulseMarker 1.5s infinite; }
+
+        .camera-inspector { width: 320px; background: var(--panel-bg); border-left: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+        
+        @keyframes pulseMarker {
+            0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(220, 38, 38, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="top-nav">
+        <div class="nav-brand">VMS Enterprise Core</div>
+        <a href="dashboard.html" class="nav-link">Live</a>
+        <a href="playback.html" class="nav-link">Playback</a>
+        <a href="maps.html" class="nav-link active">Maps</a>
+        <a href="events.html" class="nav-link">Events</a>
+        <a href="export.html" class="nav-link" style="color: var(--danger);">Export Master</a>
+        <a href="audit.html" class="nav-link">Audit</a>
+    </header>
+
+    <div class="workspace">
+        <div class="map-canvas">
+            <div class="floorplan">
+                <div class="room" style="top: 20px; left: 20px; width: 350px; height: 200px;">Главный склад</div>
+                <div class="room" style="top: 20px; left: 390px; width: 390px; height: 200px;">Периметр / Парковка</div>
+                <div class="room" style="top: 240px; left: 20px; width: 760px; height: 240px;">Офисная зона</div>
+
+                <div class="camera-marker" id="marker-cam1" style="top: 120px; left: 200px;" onclick="selectCamera('cam1')">
+                    📹
+                </div>
+                <div class="camera-marker" id="marker-cam2" style="top: 100px; left: 580px;" onclick="selectCamera('cam2')">
+                    🚗
+                </div>
+            </div>
+        </div>
+
+        <aside class="camera-inspector">
+            <h3 style="font-size: 16px; font-weight: 600;" id="insp-title">Выберите камеру</h3>
+            <div style="background: #000; height: 180px; border-radius: var(--radius-sm); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden;" id="insp-preview">
+                <span style="font-size: 12px; color: var(--text-muted);">Нет сигнала</span>
+            </div>
+            <div style="font-size: 13px; display: flex; flex-direction: column; gap: 8px; color: var(--text-muted);" id="insp-details">
+                <span>Кликните по маркеру на схеме здания, чтобы просмотреть статус устройства и последние события.</span>
+            </div>
+            <div style="margin-top: auto;">
+                <a href="dashboard.html" class="nav-link" style="display: block; text-align: center; background: var(--card-bg); border: 1px solid var(--border); padding: 8px; border-radius: var(--radius-sm); color: var(--text-main);">Перейти в Live-мониторинг</a>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        let currentSelectedCam = null;
+
+        function selectCamera(camId) {
+            currentSelectedCam = camId;
+            document.getElementById('insp-title').innerText = `Камера: ${camId}`;
+            
+            const preview = document.getElementById('insp-preview');
+            if (camId === 'cam1') {
+                preview.innerHTML = `<video autoplay muted controls style="width:150%; height:100%; object-fit:cover;" src="http://localhost:8888/cam1/index.m3u8"></video>`;
+            } else {
+                preview.innerHTML = `<span style="font-size: 12px; color: var(--text-muted);">Поток недоступен</span>`;
+            }
+
+            document.getElementById('insp-details').innerHTML = `
+                <div>Статус: <span style="color: var(--success);">Online</span></div>
+                <div>Зона контроля: Склад / Периметр</div>
+                <div>Последняя активность: Зафиксировано движение</div>
+            `;
+        }
+
+        async function checkMapAlarms() {
+            try {
+                const response = await fetch('alarms.json?t=' + new Date().getTime());
+                if (!response.ok) return;
+                const alarms = await response.json();
+                
+                const hasCam1Alarm = alarms.some(a => a.camera.includes('cam1'));
+                const marker1 = document.getElementById('marker-cam1');
+                
+                if (hasCam1Alarm) {
+                    marker1.classList.add('alarm');
+                } else {
+                    marker1.classList.remove('alarm');
+                }
+            } catch (e) {}
+        }
+
+        setInterval(checkMapAlarms, 2000);
+    </script>
+</body>
+</html>

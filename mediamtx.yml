@@ -1,0 +1,9 @@
+pathDefaults:
+  record: yes
+  recordPath: ./archive/%path/%Y-%m-%d_%H-%M-%S.mp4
+  recordSegmentDuration: 1h
+  rtspTransport: tcp
+
+paths:
+  dahua_cam1:
+    source: rtsp://dev_user:DevPass2026@192.168.1.80:554/cam/realmonitor?channel=1&subtype=0

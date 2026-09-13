@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VMS & BI Core | Диспетчер доступа</title>
+    <style>
+        :root {
+            --bg-dark: #0a0c10;
+            --panel-bg: #14171d;
+            --card-bg: #1e222a;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --accent: #2563eb;
+            --danger: #dc2626;
+            --warning: #f59e0b;
+            --success: #10b981;
+            --border: #2a2f3a;
+            --radius-md: 8px;
+            --radius-sm: 4px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Inter, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 36px;
+            width: 400px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .tab-switch {
+            display: flex;
+            background: var(--bg-dark);
+            border-radius: var(--radius-sm);
+            padding: 4px;
+            gap: 4px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 4px;
+            transition: 0.2s;
+        }
+        .tab-btn.active {
+            background: var(--card-bg);
+            color: #fff;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .form-label {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .form-control {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            outline: none;
+        }
+        .form-control:focus {
+            border-color: var(--accent);
+        }
+
+        .btn-action {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 6px;
+        }
+        .btn-action:hover {
+            background: #1d4ed8;
+        }
+
+        .status-box {
+            display: none;
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            text-align: center;
+            border: 1px solid transparent;
+        }
+        .status-pending {
+            display: block;
+            background: rgba(245, 158, 11, 0.1);
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+        .status-rejected {
+            display: block;
+            background: rgba(220, 38, 38, 0.1);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+        .status-approved {
+            display: block;
+            background: rgba(16, 185, 129, 0.1);
+            border-color: var(--success);
+            color: var(--success);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <div style="text-align: center;">
+            <h2 style="font-size: 20px; color: #fff;">VMS & BI Core</h2>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Централизованный контроль доступа</p>
+        </div>
+
+        <div class="tab-switch">
+            <button type="button" class="tab-btn active" id="btn-tab-admin" onclick="switchTab('admin')">Super Admin</button>
+            <button type="button" class="tab-btn" id="btn-tab-operator" onclick="switchTab('operator')">Оператор смены</button>
+        </div>
+
+        <!-- ФОРМА СУПЕР-АДМИНА -->
+        <div id="section-admin" style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="form-group">
+                <label class="form-label">Учетная запись</label>
+                <input type="text" class="form-control" value="Mustafayev Edvin (SuperAdmin)" readonly>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Мастер-пароль</label>
+                <input type="password" class="form-control" id="admin-pass" placeholder="••••••••">
+            </div>
+            <button type="button" class="btn-action" onclick="loginAdmin()">Войти в Центр управления</button>
+        </div>
+
+        <!-- ФОРМА ОПЕРАТОРА (ЗАПРОС ДОСТУПА) -->
+        <div id="section-operator" style="display: none; flex-direction: column; gap: 12px;">
+            <div class="form-group">
+                <label class="form-label">Выберите сотрудника смены</label>
+                <select class="form-control" id="operator-select">
+                    <option value="op_leyla" data-name="Aliyev Leyla">Aliyev Leyla (Operator)</option>
+                    <option value="op_rashad" data-name="Hasanov Rashad">Hasanov Rashad (Operator)</option>
+                </select>
+            </div>
+            <button type="button" class="btn-action" id="btn-request" onclick="requestAccess()"> Отправить запрос Super Admin</button>
+        </div>
+
+        <div id="status-display" class="status-box"></div>
+    </div>
+
+    <script>
+        let currentRequestId = null;
+        let pollInterval = null;
+
+        function switchTab(mode) {
+            document.getElementById('section-admin').style.display = mode === 'admin' ? 'flex' : 'none';
+            document.getElementById('section-operator').style.display = mode === 'operator' ? 'flex' : 'none';
+            document.getElementById('btn-tab-admin').classList.toggle('active', mode === 'admin');
+            document.getElementById('btn-tab-operator').classList.toggle('active', mode === 'operator');
+            document.getElementById('status-display').className = 'status-box';
+            if (mode === 'operator') loadOperators();
+        }
+
+        async function loadOperators() {
+            try {
+                const res = await fetch('/api/operators_list');
+                const list = await res.json();
+                const sel = document.getElementById('operator-select');
+                if (list && list.length > 0) {
+                    sel.innerHTML = '';
+                    list.forEach(op => {
+                        const opt = document.createElement('option');
+                        opt.value = op.username;
+                        opt.setAttribute('data-name', op.name);
+                        opt.textContent = `${op.name} (${op.role})`;
+                        sel.appendChild(opt);
+                    });
+                }
+            } catch (e) {
+                console.log("Используем предустановленный список операторов");
+            }
+        }
+
+        function loginAdmin() {
+            const pass = document.getElementById('admin-pass').value.trim();
+            if (pass === "admin2026") {
+                localStorage.setItem('vms_auth', 'true');
+                localStorage.setItem('vms_user', 'Mustafayev Edvin');
+                localStorage.setItem('vms_role', 'SuperAdmin');
+                window.location.href = 'dashboard.html';
+            } else {
+                alert("Неверный пароль Super Admin! (admin2026)");
+            }
+        }
+
+        async function requestAccess() {
+            const sel = document.getElementById('operator-select');
+            const username = sel.value;
+            const opName = sel.options[sel.selectedIndex]?.getAttribute('data-name') || username;
+            const statusBox = document.getElementById('status-display');
+            const btn = document.getElementById('btn-request');
+
+            if (!username) return alert("Выберите сотрудника!");
+
+            btn.disabled = true;
+            statusBox.className = 'status-box status-pending';
+            statusBox.innerHTML = 'Запрос отправлен Super Admin в Telegram.<br>Ожидание подтверждения...';
+
+            try {
+                const res = await fetch('/api/request_access', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ username: username, name: opName })
+                });
+                const data = await res.json();
+                currentRequestId = data.req_id;
+
+                if (pollInterval) clearInterval(pollInterval);
+                pollInterval = setInterval(checkStatus, 1500);
+            } catch (e) {
+                statusBox.className = 'status-box status-rejected';
+                statusBox.innerText = 'Ошибка связи с сервером!';
+                btn.disabled = false;
+            }
+        }
+
+        async function checkStatus() {
+            if (!currentRequestId) return;
+            try {
+                const res = await fetch(`/api/check_auth_status?req_id=${currentRequestId}`);
+                const data = await res.json();
+                const statusBox = document.getElementById('status-display');
+
+                if (data.status === 'approved') {
+                    clearInterval(pollInterval);
+                    statusBox.className = 'status-box status-approved';
+                    statusBox.innerText = ' Доступ подтвержден! Переход в систему...';
+                    
+                    const sel = document.getElementById('operator-select');
+                    const opName = sel.options[sel.selectedIndex]?.getAttribute('data-name') || "Оператор";
+                    localStorage.setItem('vms_auth', 'true');
+                    localStorage.setItem('vms_user', opName);
+                    localStorage.setItem('vms_role', 'Operator');
+                    
+                    setTimeout(() => window.location.href = 'dashboard.html', 1000);
+                } else if (data.status === 'rejected') {
+                    clearInterval(pollInterval);
+                    statusBox.className = 'status-box status-rejected';
+                    statusBox.innerText = ' Вход отклонен Администратором.';
+                    document.getElementById('btn-request').disabled = false;
+                }
+            } catch (e) {}
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VMS & BI Core | Export Master</title>
+    <style>
+        :root {
+            --bg-dark: #0a0c10; --panel-bg: #14171d; --card-bg: #1e222a;
+            --text-main: #f3f4f6; --text-muted: #9ca3af;
+            --accent: #2563eb; --danger: #dc2626; --warning: #f59e0b; --success: #10b981;
+            --border: #2a2f3a; --radius-md: 6px; --radius-sm: 4px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Inter, sans-serif; background-color: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* Шапка */
+        .top-nav { height: 48px; background-color: var(--panel-bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; gap: 24px; font-size: 14px; }
+        .nav-brand { font-weight: bold; font-size: 16px; color: #fff; }
+        .nav-link { color: var(--text-muted); cursor: pointer; transition: 0.2s; text-decoration: none; }
+        .nav-link.active { color: var(--warning); font-weight: 600; }
+        .nav-link:hover { color: var(--text-main); }
+
+        /* Рабочая область */
+        .workspace { display: flex; flex: 1; height: calc(100vh - 48px); padding: 24px; gap: 24px; overflow: hidden; }
+        
+        /* Левая панель: Форма экспорта */
+        .export-form-panel { width: 340px; background: var(--panel-bg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; display: flex; flex-direction: column; gap: 20px; flex-shrink: 0; overflow-y: auto; }
+        .panel-title { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+        
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        .form-label { font-size: 13px; color: var(--text-muted); }
+        .form-control { background: var(--bg-dark); border: 1px solid var(--border); color: #fff; padding: 10px 12px; border-radius: var(--radius-sm); font-size: 13px; outline: none; width: 100%; }
+        .form-control:focus { border-color: var(--accent); }
+        .time-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .btn-export { background: var(--accent); color: #fff; border: none; padding: 12px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.2s; width: 100%; margin-top: 10px; }
+        .btn-export:hover { background: #1d4ed8; }
+        .btn-export:disabled { background: #374151; color: #9ca3af; cursor: not-allowed; }
+
+        /* Правая панель: Таблица клипов и Тулбар */
+        .export-list-panel { flex: 1; background: var(--panel-bg); border: 1px solid var(--border); border-radius: var(--radius-md); display: flex; flex-direction: column; overflow: hidden; }
+        .list-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        
+        /* Тулбар пакетных действий */
+        .mass-actions-toolbar { background: var(--bg-dark); padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; gap: 12px; align-items: center; }
+        .btn-toolbar { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-main); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 12px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px; }
+        .btn-toolbar:hover { border-color: #4b5563; }
+        .btn-telegram { background: rgba(37, 99, 235, 0.1); color: var(--accent); border-color: var(--accent); }
+        .btn-telegram:hover { background: var(--accent); color: #fff; }
+        .btn-delete { color: var(--danger); border-color: transparent; }
+        .btn-delete:hover { background: rgba(220, 38, 38, 0.1); }
+
+        .table-container { flex: 1; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+        th { background: var(--card-bg); color: var(--text-muted); padding: 12px 20px; font-weight: 600; border-bottom: 1px solid var(--border); position: sticky; top: 0; }
+        td { padding: 12px 20px; border-bottom: 1px solid var(--border); color: var(--text-main); }
+        
+        .status-ready { color: var(--success); font-weight: 600; }
+        .action-links { display: flex; gap: 16px; }
+        .action-link { color: var(--text-muted); text-decoration: none; cursor: pointer; font-weight: 600; font-size: 12px; transition: 0.2s; }
+        .action-link:hover { color: #fff; text-decoration: underline; }
+        .action-preview { color: var(--warning); }
+        .empty-state { padding: 40px; text-align: center; color: var(--text-muted); font-size: 13px; }
+
+        /* Модальное окно предпросмотра (Smart Preview) */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(4px); }
+        .modal-content { background: var(--panel-bg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px; width: 600px; max-width: 90%; color: #fff; position: relative; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+        .modal-close { position: absolute; top: 16px; right: 20px; cursor: pointer; color: var(--text-muted); font-size: 20px; font-weight: bold; }
+        .modal-close:hover { color: #fff; }
+        .modal-title { font-size: 16px; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+        
+        .audit-card { background: var(--bg-dark); padding: 16px; border-radius: var(--radius-sm); font-size: 13px; display: flex; flex-direction: column; gap: 8px; }
+        .audit-row { display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 4px; }
+        .audit-key { color: var(--text-muted); }
+        .audit-val { font-weight: 600; }
+        .audit-score { font-size: 24px; font-weight: bold; text-align: center; margin-top: 10px; color: var(--success); }
+    </style>
+</head>
+<body>
+
+    <header class="top-nav">
+        <div class="nav-brand">VMS & BI Core</div>
+        <a href="dashboard.html" class="nav-link">Обзор объектов</a>
+        <a href="telephony.html" class="nav-link">IP-телефония & Чек-листы</a>
+        <a href="lab.html" class="nav-link">Видеолаборатория</a>
+        <a href="export.html" class="nav-link active">Export Master</a>
+        <a href="audit.html" class="nav-link">Системный аудит</a>
+        
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 20px;">
+            <div style="display: flex; align-items: center; gap: 12px; border-left: 1px solid var(--border); padding-left: 20px;">
+                <span style="font-size: 13px; color: var(--text-muted);">Оператор: <strong style="color: #fff;" id="op-name">ADMIN</strong></span>
+                <span style="color: var(--danger); font-size: 12px; cursor: pointer;" onclick="if(confirm('Завершить сеанс и выйти?')) { localStorage.removeItem('vms_auth'); window.location.href='login.html'; }">Выход</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="workspace">
+        
+        <!-- Левая панель -->
+        <div class="export-form-panel">
+            <div class="panel-title">Новая задача экспорта</div>
+            
+            <div class="form-group">
+                <label class="form-label">Объект</label>
+                <select class="form-control" id="form-object">
+                    <option>Dahua NVR 192.168.1.80</option>
+                    <option>Донерная на Тверской</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Выберите камеру</label>
+                <select class="form-control" id="form-camera">
+                    <option>cam 1 (Выдача)</option>
+                    <option>cam 2 (Касса)</option>
+                </select>
+            </div>
+            <div class="time-grid">
+                <div class="form-group"><label class="form-label">Начало</label><input type="text" class="form-control" id="time-start" placeholder="00:00:00" value="15:00:00"></div>
+                <div class="form-group"><label class="form-label">Конец</label><input type="text" class="form-control" id="time-end" placeholder="00:00:10" value="15:05:00"></div>
+            </div>
+            <button class="btn-export" id="btn-start" onclick="startExportTask()">🚀 Запустить выгрузку</button>
+        </div>
+
+        <!-- Правая панель -->
+        <div class="export-list-panel">
+            <div class="list-header">
+                <div class="panel-title">Управление готовыми материалами</div>
+                <button class="btn-toolbar" onclick="loadExports()">🔄 Обновить список</button>
+            </div>
+            
+            <!-- ТУЛБАР ПАКЕТНЫХ ДЕЙСТВИЙ -->
+            <div class="mass-actions-toolbar">
+                <span style="color: var(--text-muted); font-size: 12px;">Выделенные файлы:</span>
+                
+                <select class="form-control" id="tg-target-chat" style="width: 200px; padding: 6px;">
+                    <option value="boss">Начальник охраны (Видео)</option>
+                    <option value="qc">Отдел качества (Отчеты)</option>
+                    <option value="me">Мой личный чат</option>
+                </select>
+                
+                <button class="btn-toolbar btn-telegram" onclick="massSendTelegram()">✈️ Отправить в Telegram</button>
+                <button class="btn-toolbar btn-delete" onclick="massDelete()" style="margin-left: auto;">🗑 Удалить выбранное</button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="selectAll" onclick="toggleAll(this)" style="accent-color: var(--accent); cursor: pointer;"></th>
+                            <th>Имя файла</th>
+                            <th>Тип / Источник</th>
+                            <th>Действие</th>
+                        </tr>
+                    </thead>
+                    <tbody id="export-table-body">
+                        <tr><td colspan="4" class="empty-state">Загрузка файлов...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО ПРЕДПРОСМОТРА (SMART PREVIEW) -->
+    <div class="modal-overlay" id="preview-modal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-close" onclick="closeModal(true)">✕</div>
+            <div class="modal-title" id="modal-title">Предпросмотр</div>
+            <div id="modal-body" style="min-height: 100px; display:flex; justify-content:center; align-items:center;">
+                <!-- Сюда инжектится плеер или карточка аудита -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Подставляем логин оператора из сессии
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedUser = localStorage.getItem('vms_user');
+            if (savedUser) document.getElementById('op-name').innerText = savedUser;
+        });
+
+        // 1. ЛОКАЛЬНАЯ ЭМУЛЯЦИЯ ФАЙЛОВОЙ СИСТЕМЫ
+        function getLocalFiles() {
+            let files = localStorage.getItem('vms_exports_db');
+            if (!files) {
+                // Тестовые файлы при первом запуске
+                files = ['dahua_cam1_13092026_1400.mp4', 'qa_report_shift_A.json'];
+                localStorage.setItem('vms_exports_db', JSON.stringify(files));
+            } else {
+                files = JSON.parse(files);
+            }
+            return files;
+        }
+
+        function saveLocalFiles(files) {
+            localStorage.setItem('vms_exports_db', JSON.stringify(files));
+        }
+
+        // 2. ОТОБРАЖЕНИЕ СПИСКА ФАЙЛОВ
+        function loadExports() {
+            const tbody = document.getElementById('export-table-body');
+            const files = getLocalFiles();
+            
+            if (files.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Хранилище экспорта пусто.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            files.forEach(f => {
+                const isVideo = f.endsWith('.mp4');
+                const sourceIcon = isVideo ? '📹 Видеоархив (.mp4)' : '📞 Отчет качества (.json)';
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td><input type="checkbox" class="row-checkbox" value="${f}" style="accent-color: var(--accent); cursor: pointer;"></td>
+                        <td style="font-family: monospace;">${f}</td>
+                        <td style="color: var(--text-muted);">${sourceIcon}</td>
+                        <td class="action-links">
+                            <span class="action-link action-preview" onclick="openPreview('${f}')">👁 Предпросмотр</span>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Чекбоксы
+        function toggleAll(source) {
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = source.checked);
+        }
+
+        function getSelectedFiles() {
+            return Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+        }
+
+        // 3. ОТПРАВКА В TELEGRAM (Перехватываем реальный сервер)
+        async function massSendTelegram() {
+            const files = getSelectedFiles();
+            if (files.length === 0) return alert("Выберите файлы галочками слева!");
+            
+            const targetChat = document.getElementById('tg-target-chat').options[document.getElementById('tg-target-chat').selectedIndex].text;
+            
+            try {
+                // Шлем запрос на твой живой VMS-сервер, чтобы бот прислал пуш на телефон!
+                await fetch('/api/trigger_camera_alert', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        camera: "Модуль Экспорта", 
+                        type: `Файлы выгружены (${targetChat}): ` + files.join(', ')
+                    })
+                });
+                alert(`Успешно отправлено: ${files.length} шт. Проверьте Telegram-бота!`);
+            } catch(e) { 
+                alert("Ошибка связи с сервером."); 
+            }
+        }
+
+        // 4. ПАКЕТНОЕ УДАЛЕНИЕ
+        function massDelete() {
+            const filesToDelete = getSelectedFiles();
+            if (filesToDelete.length === 0) return alert("Выберите файлы для удаления!");
+            if (!confirm(`Точно удалить ${filesToDelete.length} файлов?`)) return;
+            
+            let files = getLocalFiles();
+            files = files.filter(f => !filesToDelete.includes(f));
+            saveLocalFiles(files);
+            
+            document.getElementById('selectAll').checked = false;
+            loadExports();
+        }
+
+        // 5. ИМИТАЦИЯ НАРЕЗКИ (Левая панель)
+        function startExportTask() {
+            const start = document.getElementById('time-start').value;
+            const end = document.getElementById('time-end').value;
+            const btn = document.getElementById('btn-start');
+            if (!start || !end) return alert("Введите время начала и конца!");
+            
+            btn.disabled = true; 
+            btn.innerText = "⏳ Нарезка видео (Имитация)...";
+            
+            // Задержка полторы секунды для красоты
+            setTimeout(() => {
+                const newFilename = `export_${start.replace(/:/g, '')}_${end.replace(/:/g, '')}.mp4`;
+                let files = getLocalFiles();
+                files.unshift(newFilename); // Добавляем новый файл в начало списка
+                saveLocalFiles(files);
+                
+                loadExports();
+                
+                btn.disabled = false; 
+                btn.innerText = "🚀 Запустить выгрузку";
+            }, 1500);
+        }
+
+        // 6. УМНЫЙ ПРЕДПРОСМОТР
+        function openPreview(filename) {
+            const modal = document.getElementById('preview-modal');
+            const title = document.getElementById('modal-title');
+            const body = document.getElementById('modal-body');
+            
+            title.innerText = filename;
+            modal.style.display = 'flex';
+
+            if (filename.endsWith('.mp4')) {
+                body.innerHTML = `<div style="padding: 40px; color: var(--text-muted); text-align: center;">Плеер эмуляции (в реальности тут будет проигрываться ${filename})</div>`;
+            } else {
+                body.innerHTML = `<div style="padding: 40px; color: var(--text-muted); text-align: center;">Парсер JSON (в реальности тут будет текст из ${filename})</div>`;
+            }
+        }
+
+        function closeModal(force = false) {
+            if (force === true || (force.target && force.target.id === 'preview-modal')) {
+                document.getElementById('preview-modal').style.display = 'none';
+                document.getElementById('modal-body').innerHTML = '';
+            }
+        }
+
+        window.onload = loadExports;
+    </script>
+</body>
+</html>

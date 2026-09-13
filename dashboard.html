@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VMS & BI Core | Обзор объектов</title>
+    <style>
+        :root {
+            --bg-dark: #0a0c10; --panel-bg: #14171d; --card-bg: #1e222a;
+            --text-main: #f3f4f6; --text-muted: #9ca3af;
+            --accent: #2563eb; --warning: #f59e0b; --danger: #dc2626; --success: #10b981;
+            --border: #2a2f3a; --radius-md: 6px; --radius-sm: 4px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Inter, sans-serif; background-color: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* Верхняя навигация */
+        .top-nav { height: 48px; background-color: var(--panel-bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; gap: 24px; font-size: 14px; }
+        .nav-brand { font-weight: bold; font-size: 16px; color: #fff; }
+        .nav-link { color: var(--text-muted); cursor: pointer; transition: 0.2s; text-decoration: none; }
+        .nav-link.active { color: var(--text-main); font-weight: 600; }
+        .nav-link:hover { color: var(--text-main); }
+        
+        /* Основной макет */
+        .workspace { display: flex; flex: 1; height: calc(100vh - 48px); overflow: hidden; }
+        
+        /* Боковая панель */
+        .sidebar { width: 300px; background-color: var(--panel-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px 16px; overflow-y: auto; gap: 32px; flex-shrink: 0;}
+        .sidebar-title { font-size: 13px; font-weight: bold; color: #fff; margin-bottom: 16px; }
+        
+        .add-obj-container { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .input-box { background: var(--bg-dark); border: 1px solid var(--border); color: #fff; padding: 10px 12px; border-radius: var(--radius-sm); font-size: 13px; outline: none; }
+        .btn-add { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-muted); padding: 10px; border-radius: var(--radius-sm); cursor: pointer; transition: 0.2s; font-size: 13px; }
+        .btn-add:hover { border-color: var(--accent); color: #fff; }
+
+        .obj-list { display: flex; flex-direction: column; gap: 8px; }
+        .obj-item { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); border: 1px solid var(--border); padding: 12px; border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; }
+        .obj-item.active { border-color: var(--accent); background: rgba(37, 99, 235, 0.1); }
+        .obj-item:hover:not(.active) { border-color: #4b5563; }
+        .icon-trash { color: var(--danger); opacity: 0.5; font-size: 14px;}
+        .icon-trash:hover { opacity: 1; }
+
+        .metric-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+        .metric-header { display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; color: var(--text-muted); }
+        .ai-scan { color: #60a5fa; display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: bold;}
+        .ai-scan.orange { color: var(--warning); }
+        .ai-scan::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        .metric-value { font-size: 28px; font-weight: bold; }
+        .val-green { color: var(--success); }
+        .val-orange { color: var(--warning); }
+
+        /* Центральная панель */
+        .main-view { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); padding: 24px; overflow-y: auto;}
+        .view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .active-obj-title { color: #60a5fa; font-weight: bold; font-size: 15px; }
+        
+        .layout-controls { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
+        .layout-btn { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-main); padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; transition: 0.2s;}
+        .layout-btn:hover { border-color: #4b5563; }
+        .layout-btn.active { border-color: var(--accent); background: rgba(37, 99, 235, 0.2); color: #fff; }
+
+        /* Сетка видео */
+        .video-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 16px; flex: 1; min-height: 500px; }
+        .cam-box { background: #000; border: 1px solid var(--border); border-radius: var(--radius-md); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .cam-box.active { border-color: #1e3a8a; }
+        .cam-badge { position: absolute; top: 16px; left: 16px; background: rgba(0,0,0,0.7); padding: 6px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; color: var(--text-muted); display: flex; align-items: center; gap: 8px; z-index: 10; border: 1px solid rgba(255,255,255,0.1); }
+        .cam-badge.live { color: #fff; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); }
+        .dot.live { background: var(--success); }
+
+        /* ТУМБЛЕР ПЕРЕКЛЮЧАТЕЛЬ (CSS) */
+        .switch { position: relative; display: inline-block; width: 34px; height: 18px; margin-left: auto; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--bg-dark); border: 1px solid var(--border); transition: .3s; border-radius: 18px; }
+        .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 2px; bottom: 2px; background-color: var(--text-muted); transition: .3s; border-radius: 50%; }
+        
+        input:checked + .slider { background-color: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.5); }
+        input:checked + .slider:before { transform: translateX(16px); background-color: var(--success); }
+
+        input:not(:checked) + .slider { background-color: var(--bg-dark); border-color: var(--border); }
+        input:not(:checked) + .slider:before { transform: translateX(0); background-color: var(--text-muted); }
+    </style>
+</head>
+<body>
+
+    <header class="top-nav">
+        <div class="nav-brand">VMS & BI Core</div>
+        <a href="dashboard.html" class="nav-link active">Обзор объектов</a>
+        <a href="telephony.html" class="nav-link">IP-телефония & Чек-листы</a>
+        <a href="lab.html" class="nav-link">Видеолаборатория</a>
+        <a href="export.html" class="nav-link" style="color: var(--warning);">Export Master</a>
+        <a href="audit.html" class="nav-link">Системный аудит</a>
+        
+        <a href="clients.html" id="btn-admin-ctrl" class="nav-link" style="display: none; color: #60a5fa; font-weight: bold; border: 1px solid #60a5fa; padding: 4px 10px; border-radius: 4px;">⚙️ Центр управления</a>
+        
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 20px;">
+            <div style="display: flex; align-items: center; gap: 12px; border-left: 1px solid var(--border); padding-left: 20px;">
+                <span style="font-size: 13px; color: var(--text-muted); cursor: pointer;" onclick="openProfileModal()">Оператор: <strong style="color: #fff;" id="current-user-name">ADMIN</strong> ⚙️</span>
+                <span style="color: var(--danger); font-size: 12px; cursor: pointer;" onclick="localStorage.removeItem('vms_auth'); window.location.href='login.html';">Выход</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <aside class="sidebar">
+            <div>
+                <div class="sidebar-title">Управление объектами</div>
+                <div class="add-obj-container">
+                    <input type="text" id="new-obj-input" class="input-box" placeholder="Название нового объекта...">
+                    <button class="btn-add" onclick="addNewObject()">+ Добавить объект</button>
+                </div>
+                <div class="obj-list" id="object-list-container">
+                    <div class="obj-item active" onclick="selectObject(this)">
+                        <span class="obj-name">🏢 Dahua NVR 192.168.1.80</span>
+                        <span class="icon-trash" onclick="deleteObject(event, this)">🗑</span>
+                    </div>
+                    <div class="obj-item" onclick="selectObject(this)">
+                        <span class="obj-name">🏢 Донерная на Тверской</span>
+                        <span class="icon-trash" onclick="deleteObject(event, this)">🗑</span>
+                    </div>
+                    <div class="obj-item" onclick="selectObject(this)">
+                        <span class="obj-name">🏢 Склад Маркетплейса</span>
+                        <span class="icon-trash" onclick="deleteObject(event, this)">🗑</span>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="sidebar-title">Метрики активного объекта</div>
+                
+                <div class="metric-card" style="margin-top: 16px; padding: 12px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: var(--radius-sm);">
+                    <div style="font-size: 11px; font-weight: bold; color: var(--accent); margin-bottom: 8px; text-transform: uppercase;">🚗 Поток автономеров</div>
+                    <div id="anpr-feed" style="display: flex; flex-direction: column; gap: 6px; max-height: 250px; overflow-y: auto; font-family: monospace; font-size: 12px;">
+                        <span style="color: var(--text-muted);">Ожидание детекции...</span>
+                    </div>
+                </div>
+
+                <div class="metric-card" style="margin-top: 16px; padding: 12px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: var(--radius-sm);">
+                    <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                        <div style="font-size: 11px; font-weight: bold; color: var(--danger); text-transform: uppercase;">⚠️ Тревоги (Движение)</div>
+                        <label class="switch" title="Включить/Выключить детектор движения">
+                            <input type="checkbox" id="motion-toggle" checked onchange="toggleMotionDetector(this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div id="motion-feed" style="display: flex; flex-direction: column; gap: 6px; max-height: 250px; overflow-y: auto; font-family: monospace; font-size: 12px;">
+                        <span style="color: var(--text-muted);">Зона под охраной...</span>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header"><span>СОБЫТИЯ (ТИП 2)</span><span class="ai-scan orange">AI SCAN</span></div>
+                    <div class="metric-value val-orange">70</div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-view">
+            <div class="view-header">
+                <div class="active-obj-title" id="main-title">Объект: Dahua NVR 192.168.1.80</div>
+                <div class="layout-controls">
+                    Раскладка: 
+                    <button class="layout-btn" onclick="changeLayout(1, this)">1</button>
+                    <button class="layout-btn" onclick="changeLayout(2, this)">2</button>
+                    <button class="layout-btn active" onclick="changeLayout(4, this)">4</button>
+                    <button class="layout-btn" onclick="changeLayout(6, this)">6</button>
+                    <button class="layout-btn" onclick="changeLayout(8, this)">8</button>
+                    <button class="layout-btn" onclick="changeLayout(16, this)">16</button>
+                </div>
+            </div>
+
+            <div class="video-grid" id="main-grid">
+                <div class="cam-box active"><div class="cam-badge live"><div class="dot live"></div>САМ 1 (ШЛАГБАУМ) (LIVE)</div>
+                    <iframe src="http://127.0.0.1:8889/dahua_cam1" style="width:100%; height:100%; border:none;" allow="autoplay; fullscreen"></iframe>
+                </div>
+                <div class="cam-box"><div class="cam-badge"><div class="dot"></div>САМ 2 (ОЖИДАНИЕ)</div></div>
+                <div class="cam-box"><div class="cam-badge"><div class="dot"></div>САМ 3 (ОЖИДАНИЕ)</div></div>
+                <div class="cam-box"><div class="cam-badge"><div class="dot"></div>САМ 4 (ОЖИДАНИЕ)</div></div>
+                
+                <div class="cam-box" style="display:none;"><div class="cam-badge"><div class="dot"></div>САМ 5 (ОЖИДАНИЕ)</div></div>
+                <div class="cam-box" style="display:none;"><div class="cam-badge"><div class="dot"></div>САМ 6 (ОЖИДАНИЕ)</div></div>
+                <div class="cam-box" style="display:none;"><div class="cam-badge"><div class="dot"></div>САМ 7 (ОЖИДАНИЕ)</div></div>
+                <div class="cam-box" style="display:none;"><div class="cam-badge"><div class="dot"></div>САМ 8 (ОЖИДАНИЕ)</div></div>
+                <div class="cam-box" style="display:none;"><div class="cam-badge"><div class="dot"></div>САМ 9 (ОЖИДАНИЕ)</div></div>
+                <div class="cam-box" style="display:none;"><div class="cam-badge"><div class="dot"></div>САМ 10 (ОЖИДАНИЕ)</div></div>
+                <div class="cam-box" style="display:none;"><div class="cam-badge"><div class="dot"></div>САМ 11 (ОЖИДАНИЕ)</div></div>
+                <div class="cam-box" style="display:none;"><div class="cam-badge"><div class="dot"></div>САМ 12 (ОЖИДАНИЕ)</div></div>
+                <div class="cam-box" style="display:none;"><div class="cam-badge"><div class="dot"></div>САМ 13 (ОЖИДАНИЕ)</div></div>
+                <div class="cam-box" style="display:none;"><div class="cam-badge"><div class="dot"></div>САМ 14 (ОЖИДАНИЕ)</div></div>
+                <div class="cam-box" style="display:none;"><div class="cam-badge"><div class="dot"></div>САМ 15 (ОЖИДАНИЕ)</div></div>
+                <div class="cam-box" style="display:none;"><div class="cam-badge"><div class="dot"></div>САМ 16 (ОЖИДАНИЕ)</div></div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        async function loadSystemSettings() {
+            try {
+                const res = await fetch('/api/settings');
+                const data = await res.json();
+                const toggle = document.getElementById('motion-toggle');
+                if (toggle) {
+                    toggle.checked = !!data.motion_enabled;
+                }
+            } catch (e) {
+                console.error("Не удалось загрузить настройки", e);
+            }
+        }
+
+        async function toggleMotionDetector(isEnabled) {
+            try {
+                const res = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ motion_enabled: isEnabled })
+                });
+                const data = await res.json();
+                if(data.status === 'success') {
+                    const feed = document.getElementById('motion-feed');
+                    if(!isEnabled) {
+                        feed.innerHTML = '<span style="color: var(--warning); font-style: italic;">Охрана зоны приостановлена...</span>';
+                    } else {
+                        feed.innerHTML = '<span style="color: var(--success); font-style: italic;">Зона под охраной...</span>';
+                    }
+                }
+            } catch (e) {
+                console.error("Ошибка переключения детектора", e);
+                document.getElementById('motion-toggle').checked = !isEnabled;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSystemSettings();
+            
+            const savedUser = localStorage.getItem('vms_user');
+            const userRole = localStorage.getItem('vms_role');
+
+            if (savedUser) {
+                document.getElementById('current-user-name').innerText = savedUser;
+            }
+
+            const adminBtn = document.getElementById('btn-admin-ctrl');
+            if (userRole === 'SuperAdmin') {
+                if (adminBtn) adminBtn.style.display = 'block';
+            }
+        });
+
+        function addNewObject() {
+            const input = document.getElementById('new-obj-input');
+            const name = input.value.trim();
+            if (!name) return alert("Введите название объекта!");
+
+            const list = document.getElementById('object-list-container');
+            const newItem = document.createElement('div');
+            newItem.className = 'obj-item';
+            newItem.setAttribute('onclick', 'selectObject(this)');
+            newItem.innerHTML = `
+                <span class="obj-name">🏢 ${name}</span>
+                <span class="icon-trash" onclick="deleteObject(event, this)">🗑</span>
+            `;
+            list.appendChild(newItem);
+            input.value = '';
+        }
+
+        function selectObject(element) {
+            document.querySelectorAll('.obj-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            const name = element.querySelector('.obj-name').innerText.replace('🏢 ', '');
+            document.getElementById('main-title').innerText = `Объект: ${name}`;
+        }
+
+        function deleteObject(event, trashElement) {
+            event.stopPropagation();
+            if(confirm("Удалить этот объект?")) {
+                trashElement.parentElement.remove();
+            }
+        }
+
+        function changeLayout(num, btnElement) {
+            document.querySelectorAll('.layout-btn').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+
+            const grid = document.getElementById('main-grid');
+            const boxes = grid.querySelectorAll('.cam-box');
+
+            if (num === 1) {
+                grid.style.gridTemplateColumns = '1fr';
+                grid.style.gridTemplateRows = '1fr';
+            } else if (num === 2) {
+                grid.style.gridTemplateColumns = '1fr 1fr';
+                grid.style.gridTemplateRows = '1fr';
+            } else if (num === 4) {
+                grid.style.gridTemplateColumns = '1fr 1fr';
+                grid.style.gridTemplateRows = '1fr 1fr';
+            } else if (num === 6) {
+                grid.style.gridTemplateColumns = '1fr 1fr 1fr';
+                grid.style.gridTemplateRows = '1fr 1fr';
+            } else if (num === 8) {
+                grid.style.gridTemplateColumns = '1fr 1fr 1fr 1fr';
+                grid.style.gridTemplateRows = '1fr 1fr';
+            } else if (num === 16) {
+                grid.style.gridTemplateColumns = '1fr 1fr 1fr 1fr';
+                grid.style.gridTemplateRows = '1fr 1fr 1fr 1fr';
+            }
+
+            boxes.forEach((box, index) => {
+                if (index < num) box.style.display = 'flex';
+                else box.style.display = 'none';
+            });
+        }
+
+        async function fetchAnprFeed() {
+            try {
+                const res = await fetch('/api/anpr');
+                const logs = await res.json();
+                const feed = document.getElementById('anpr-feed');
+                
+                if (logs.length > 0) {
+                    feed.innerHTML = '';
+                    logs.slice(-10).reverse().forEach(log => {
+                        feed.innerHTML += `
+                            <div style="background: var(--panel-bg); padding: 6px; border-radius: 4px; border-left: 2px solid var(--accent);">
+                                <div style="color: var(--text-muted); font-size: 10px;">${log.timestamp}</div>
+                                <div style="font-weight: bold; color: #fff; font-size: 14px;">${log.plate} <span style="font-size: 10px; font-weight: normal; color: var(--success);">(${log.score}%)</span></div>
+                            </div>
+                        `;
+                    });
+                }
+            } catch (e) { }
+        }
+        setInterval(fetchAnprFeed, 2000);
+
+        async function fetchMotionAlarms() {
+            try {
+                const toggle = document.getElementById('motion-toggle');
+                if(!toggle.checked) return;
+
+                const res = await fetch('/api/alarms');
+                const alarms = await res.json();
+                const feed = document.getElementById('motion-feed');
+                
+                if (alarms.length > 0) {
+                    feed.innerHTML = ''; 
+                    alarms.slice(-10).reverse().forEach(alarm => {
+                        const timeString = new Date(alarm.timestamp * 1000).toLocaleTimeString('ru-RU');
+                        feed.innerHTML += `
+                            <div style="background: rgba(220, 38, 38, 0.1); padding: 6px; border-radius: 4px; border-left: 2px solid var(--danger);">
+                                <div style="color: var(--text-muted); font-size: 10px;">${timeString} - ${alarm.camera}</div>
+                                <div style="font-weight: bold; color: var(--danger); font-size: 13px;">${alarm.title}</div>
+                            </div>
+                        `;
+                    });
+                }
+            } catch (e) { }
+        }
+        setInterval(fetchMotionAlarms, 1500);
+
+        function openProfileModal() {
+            document.getElementById('profile-modal').style.display = 'flex';
+        }
+
+        function closeProfileModal() {
+            document.getElementById('profile-modal').style.display = 'none';
+            document.getElementById('new-password-input').value = '';
+        }
+
+        function saveNewPassword() {
+            const p = document.getElementById('new-password-input').value.trim();
+            if (p.length < 4) {
+                alert("Пароль должен быть не менее 4 символов!");
+                return;
+            }
+            alert("Пароль успешно изменен!");
+            closeProfileModal();
+        }
+    </script>
+
+    <div id="profile-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center;">
+        <div style="background: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; padding: 30px; width: 360px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+                <h3 style="font-size: 16px; color: #fff;">👤 Профиль оператора</h3>
+                <span style="cursor: pointer; color: var(--text-muted); font-size: 18px;" onclick="closeProfileModal()">&times;</span>
+            </div>
+            
+            <div style="font-size: 13px; display: flex; flex-direction: column; gap: 6px; color: var(--text-muted);">
+                <div>Статус: <span style="color: var(--success); font-weight: bold;">Активен</span></div>
+                <div>Роль: <span style="color: #fff; font-weight: bold;">System Administrator</span></div>
+                <div>Отдел: <span style="color: #fff; font-weight: bold;">Management (Центр)</span></div>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid var(--border);">
+
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label style="font-size: 12px; color: var(--text-muted);">Новый пароль</label>
+                <input type="password" id="new-password-input" placeholder="Введите новый пароль" style="background: var(--bg-dark); border: 1px solid var(--border); color: #fff; padding: 8px; border-radius: 4px; font-size: 13px; outline: none;">
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button onclick="saveNewPassword()" style="flex: 1; background: var(--accent); color: #fff; border: none; padding: 10px; border-radius: 4px; font-size: 13px; cursor: pointer; font-weight: 600;">Сохранить</button>
+                <button onclick="closeProfileModal()" style="background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border); padding: 10px; border-radius: 4px; font-size: 13px; cursor: pointer;">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
